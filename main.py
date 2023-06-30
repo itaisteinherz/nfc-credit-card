@@ -89,21 +89,20 @@ def read_record(card_connection: CardConnection, sfi: int, record_number: int) -
         raise RuntimeError(f'Failed to read record (SFI: {hex(sfi)}, Record: {hex(record_number)})')
 
 
-def read_all_records(card_connection: CardConnection) -> List[Record]:
-    records = []
-
+def find_pan_record(card_connection: CardConnection) -> Record:
     # Enumerate and fetch all files
     for sfi in range(1, 32):  # Iterate through possible SFIs (Short File Identifiers)
         # Enumerate and fetch all records in the file
         for record_number in range(1, 16):  # Iterate through possible record numbers
             try:
                 record = read_record(card_connection, sfi, record_number)
-                records.append(record)
+                if record.does_include_pan:
+                    return record
             except RuntimeError as e:
                 logging.debug(str(e))
                 continue
 
-    return records
+    raise RuntimeError('PAN record not found on card')
 
 
 def main():
@@ -115,9 +114,7 @@ def main():
 
     select_visa_application(card_connection)
 
-    records = read_all_records(card_connection)
-
-    pan_record = next(record for record in records if record.does_include_pan)
+    pan_record = find_pan_record(card_connection)
 
     logging.info('PAN: %s', pan_record.visa_pan)
     logging.info('Expiration date: %d/%d', pan_record.expiration_date[0], pan_record.expiration_date[1])
