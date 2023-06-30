@@ -1,15 +1,16 @@
 import logging
+import re
 import sys
 from dataclasses import dataclass
 from functools import cached_property
-from typing import List, Tuple
+from typing import Tuple, Optional
 
 from smartcard.CardType import AnyCardType
 from smartcard.CardRequest import CardRequest
 from smartcard.CardConnection import CardConnection
 from smartcard.util import toHexString
 
-VISA_PAN_PREFIX = '4580'
+VISA_PAN_PATTERN = r'4[0-9]{15}'
 
 
 @dataclass
@@ -26,20 +27,17 @@ class Record:
         return toHexString(self.response).replace(' ', '')
 
     @cached_property
-    def does_include_pan(self) -> bool:
-        return VISA_PAN_PREFIX in self.text_response
+    def visa_pan(self) -> Optional[str]:
+        match = re.search(VISA_PAN_PATTERN, self.text_response)
+        if match is None:
+            return None
+
+        return match.group()
 
     @cached_property
-    def visa_pan(self) -> str:
-        if not self.does_include_pan:
-            return ''
-
-        return self.text_response[8:24]
-
-    @cached_property
-    def expiration_date(self) -> Tuple[int, int]:
-        if not self.does_include_pan:
-            return 0, 0
+    def visa_expiration_date(self) -> Optional[Tuple[int, int]]:
+        if self.visa_pan is None:
+            return None
 
         expiration_date = self.text_response[30:34]
         return int(expiration_date[2:]), int(expiration_date[:2])
@@ -96,7 +94,7 @@ def find_pan_record(card_connection: CardConnection) -> Record:
         for record_number in range(1, 16):  # Iterate through possible record numbers
             try:
                 record = read_record(card_connection, sfi, record_number)
-                if record.does_include_pan:
+                if record.visa_pan is not None:
                     return record
             except RuntimeError as e:
                 logging.debug(str(e))
@@ -117,7 +115,7 @@ def main():
     pan_record = find_pan_record(card_connection)
 
     logging.info('PAN: %s', pan_record.visa_pan)
-    logging.info('Expiration date: %d/%d', pan_record.expiration_date[0], pan_record.expiration_date[1])
+    logging.info('Expiration date: %d/%d', pan_record.visa_expiration_date[0], pan_record.visa_expiration_date[1])
 
     # Disconnect from the card
     card_connection.disconnect()
