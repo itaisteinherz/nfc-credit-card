@@ -44,9 +44,12 @@ class Record:
 
 
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    handlers=[logging.StreamHandler(sys.stdout)],
-                    format='[%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[logging.StreamHandler(sys.stdout)],
+    format='%(asctime)s [%(levelname)s] %(filename)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 def create_card_connection() -> CardConnection:
