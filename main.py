@@ -44,7 +44,7 @@ class Record:
 
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     handlers=[logging.StreamHandler(sys.stdout)],
                     format='[%(levelname)s] %(message)s')
 
