@@ -50,12 +50,10 @@ logging.basicConfig(level=logging.INFO,
 
 
 def create_card_connection() -> CardConnection:
-    logging.info('Creating connection request to card...')
-
     # Create a CardRequest object to request a card from the reader
     card_request = CardRequest(timeout=10, cardType=AnyCardType())
 
-    # Connect to the card
+    # Wait for a card to be available
     card_service = card_request.waitforcard()
 
     # Connect to the card's connection
@@ -104,10 +102,9 @@ def find_pan_record(card_connection: CardConnection) -> Record:
 
 
 def main():
+    logging.info('Connecting to card...')
     card_connection = create_card_connection()
-    # Establish a connection with the card
     card_connection.connect()
-
     logging.info('Connected to card')
 
     select_visa_application(card_connection)
